@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tic Tac Toe Online</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
     <style>
+        /* General Page Setup */
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Press Start 2P', cursive;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -15,28 +16,33 @@
             margin: 0;
             background: url('background.jpg') no-repeat center center fixed;
             background-size: cover;
-            color: light blue;
+            color: lightblue;
             position: relative;
         }
+
+        /* Watermark Text */
         .made-with {
             position: absolute;
             top: 10px;
             left: 10px;
-            font-family: 'Press Start 2P', cursive;
             font-size: 12px;
             color: #ff6b6b;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
         }
+
+        /* Main Container */
         .container {
             text-align: center;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
             max-width: 400px;
             width: 100%;
             position: relative;
         }
+
+        /* Decorative background */
         .interface-bg {
             position: absolute;
             top: 0;
@@ -45,73 +51,82 @@
             height: 100%;
             background: url('interface1.png') no-repeat center center;
             background-size: cover;
-            opacity: 0.3;
-            border-radius: 10px;
+            opacity: 0.25;
+            border-radius: 15px;
             z-index: -1;
         }
+
+        /* Board layout */
         .board {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
             margin: 20px 0;
         }
+
         .cell {
-            width: 80px;
-            height: 80px;
-            background: url('cell0.png') no-repeat center center;
-            background-size: cover;
-            border: 2px solid white;
+            width: 90px;
+            height: 90px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid lightblue;
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 2em;
+            color: white;
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 8px;
+            transition: 0.2s;
         }
-        .cell[data-index="1"] { background-image: url('cell1.png'); }
-        .cell[data-index="2"] { background-image: url('cell2.png'); }
-        .cell[data-index="3"] { background-image: url('cell3.png'); }
-        .cell[data-index="4"] { background-image: url('cell4.png'); }
-        .cell[data-index="5"] { background-image: url('cell5.png'); }
-        .cell[data-index="6"] { background-image: url('cell6.png'); }
-        .cell[data-index="7"] { background-image: url('cell7.png'); }
-        .cell[data-index="8"] { background-image: url('cell8.png'); }
+
         .cell:hover {
-            filter: brightness(1.2);
+            filter: brightness(1.3);
+            background: rgba(255, 255, 255, 0.2);
         }
+
         button {
-            padding: 10px 20px;
-            margin: 10px;
+            padding: 12px 25px;
+            margin: 8px;
             background: #4ecdc4;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 12px;
+            font-family: 'Press Start 2P', cursive;
         }
+
         button:hover {
             background: #45b7d1;
         }
+
         input {
             padding: 10px;
             margin: 10px;
             border-radius: 5px;
             border: none;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            text-align: center;
         }
+
         #status {
             margin: 20px 0;
+            color: #fff;
         }
     </style>
 </head>
 <body>
-    <div class="made-with">Made with Krishna</div>
+    <div class="made-with">Made with ❤️ by Krishna</div>
     <div class="container">
         <div class="interface-bg"></div>
         <h1>Tic Tac Toe</h1>
         <div id="menu">
-            <button id="createGame">Create New Game</button>
-            <input type="text" id="gameCode" placeholder="Enter Game Code">
+            <button id="createGame">Create New Game</button><br>
+            <input type="text" id="gameCode" placeholder="Enter Game Code" /><br>
             <button id="joinGame">Join Game</button>
         </div>
+
         <div id="game" style="display: none;">
             <div id="status">Waiting for opponent...</div>
             <div class="board" id="board">
@@ -129,20 +144,19 @@
         </div>
     </div>
 
+    <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
     <script>
-        // Replace with your Firebase config
+        // ✅ Replace this with your Firebase config from the Firebase Console
         const firebaseConfig = {
-            // YOUR_FIREBASE_CONFIG_HERE
-            // Example:
-            // apiKey: "your-api-key",
-            // authDomain: "your-project.firebaseapp.com",
-            // databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-            // projectId: "your-project",
-            // storageBucket: "your-project.appspot.com",
-            // messagingSenderId: "123456789",
-            // appId: "your-app-id"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -166,10 +180,7 @@
         createGameBtn.addEventListener('click', createGame);
         joinGameBtn.addEventListener('click', joinGame);
         resetBtn.addEventListener('click', resetGame);
-
-        cells.forEach(cell => {
-            cell.addEventListener('click', handleCellClick);
-        });
+        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
 
         function generateCode() {
             return Math.random().toString(36).substr(2, 8).toUpperCase();
@@ -217,10 +228,10 @@
                 updateBoard();
                 if (data.winner) {
                     gameActive = false;
-                    status.textContent = data.winner === 'draw' ? 'It\'s a draw!' : `${data.winner} wins!`;
+                    status.textContent = data.winner === 'draw' ? "It's a draw!" : `${data.winner} wins!`;
                     resetBtn.style.display = 'block';
                 } else if (data.players.X && data.players.O) {
-                    status.textContent = currentPlayer === player ? 'Your turn' : 'Opponent\'s turn';
+                    status.textContent = currentPlayer === player ? 'Your turn' : "Opponent's turn";
                 }
             });
         }
@@ -245,9 +256,14 @@
 
         function checkWinner() {
             const winPatterns = [
-                [0,1,2], [3,4,5], [6,7,8],
-                [0,3,6], [1,4,7], [2,5,8],
-                [0,4,8], [2,4,6]
+                [0, 1, 2],
+                [3, 4, 5],
+                [6, 7, 8],
+                [0, 3, 6],
+                [1, 4, 7],
+                [2, 5, 8],
+                [0, 4, 8],
+                [2, 4, 6]
             ];
             for (let pattern of winPatterns) {
                 const [a, b, c] = pattern;
