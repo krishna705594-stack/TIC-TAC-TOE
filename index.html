@@ -9,11 +9,13 @@
       font-family: 'Press Start 2P', cursive;
       text-align: center;
       background: #f3f3f3;
+      margin: 0;
       overflow-x: hidden;
     }
 
     h1 {
-      margin-top: 40px;
+      margin-top: 30px;
+      font-size: 22px;
     }
 
     .board {
@@ -22,7 +24,7 @@
       grid-template-rows: repeat(3, 100px);
       gap: 10px;
       justify-content: center;
-      margin-top: 30px;
+      margin-top: 20px;
     }
 
     .cell {
@@ -36,93 +38,121 @@
     }
 
     button {
-      margin-top: 20px;
+      margin-top: 10px;
       padding: 10px 20px;
-      font-size: 16px;
+      font-size: 14px;
       cursor: pointer;
     }
 
     #status {
-      margin-top: 15px;
+      margin-top: 10px;
       font-size: 14px;
       color: gray;
     }
 
-    /* 🔹 Win Screen Overlay */
-    #winScreen {
+    /* 🔹 Chat Styles */
+    #chatBubble {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.85);
-      display: none;
-      flex-direction: column;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      border: 2px solid black;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
       justify-content: center;
       align-items: center;
-      color: white;
       font-size: 28px;
-      z-index: 999;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    #notificationDot {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: red;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: none;
     }
 
     #chatBox {
       position: fixed;
+      bottom: 90px;
       right: 20px;
-      bottom: 20px;
-      width: 260px;
+      width: 300px;
+      max-height: 400px;
       background: white;
-      border: 2px solid #333;
-      border-radius: 8px;
-      display: flex;
+      border: 2px solid black;
+      border-radius: 10px;
+      display: none;
       flex-direction: column;
-      height: 300px;
       overflow: hidden;
-      font-family: Arial, sans-serif;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 999;
     }
 
-    #messages {
+    #chatHeader {
+      background: black;
+      color: white;
+      padding: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    #closeChat {
+      background: none;
+      color: white;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    #chatMessages {
       flex: 1;
       padding: 10px;
       overflow-y: auto;
       text-align: left;
-      font-size: 12px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
     }
 
-    #chatInput {
+    #chatInputArea {
       display: flex;
       border-top: 1px solid #ccc;
     }
 
-    #chatInput input {
+    #chatInput {
       flex: 1;
       border: none;
-      padding: 8px;
+      padding: 10px;
+      font-size: 14px;
       outline: none;
     }
 
-    #chatInput button {
-      background: #222;
-      color: white;
+    #sendBtn {
       border: none;
-      padding: 8px 10px;
+      background: black;
+      color: white;
+      padding: 0 15px;
+      font-size: 16px;
       cursor: pointer;
     }
 
-    #emojiPicker {
-      display: none;
-      position: absolute;
-      bottom: 60px;
-      right: 30px;
-      background: white;
-      border: 1px solid #ccc;
-      padding: 5px;
-      border-radius: 5px;
-    }
-
-    #emojiPicker span {
-      cursor: pointer;
-      font-size: 20px;
-      padding: 4px;
+    @media (max-width: 600px) {
+      .board {
+        grid-template-columns: repeat(3, 80px);
+        grid-template-rows: repeat(3, 80px);
+      }
+      #chatBox {
+        width: 90%;
+        right: 5%;
+      }
     }
   </style>
 </head>
@@ -143,26 +173,24 @@
   <div class="board" id="board"></div>
   <button id="resetButton">Reset Game</button>
 
-  <!-- 🔹 Win Screen -->
-  <div id="winScreen">
-    <h2 id="winnerText"></h2>
-    <button onclick="hideWinScreen()">Play Again</button>
+  <!-- 🔹 Chat System -->
+  <div id="chatBubble">💬
+    <div id="notificationDot"></div>
   </div>
 
-  <!-- 🔹 Chat Box -->
   <div id="chatBox">
-    <div id="messages"></div>
-    <div id="chatInput">
-      <button id="emojiBtn">😊</button>
-      <input type="text" id="messageText" placeholder="Type a message...">
-      <button id="sendBtn">Send</button>
+    <div id="chatHeader">
+      Chat Room
+      <button id="closeChat">✖</button>
     </div>
-    <div id="emojiPicker">
-      <span>😀</span><span>😂</span><span>😎</span><span>❤️</span><span>🔥</span><span>👍</span>
+    <div id="chatMessages"></div>
+    <div id="chatInputArea">
+      <input id="chatInput" type="text" placeholder="Type a message..." />
+      <button id="sendBtn">➤</button>
     </div>
   </div>
 
-  <!-- 🔹 Firebase + Game Logic -->
+  <!-- 🔹 Firebase + Game + Chat Logic -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, set, get, onValue, update, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -183,27 +211,27 @@
     const boardElement = document.getElementById("board");
     const status = document.getElementById("status");
     const roomInput = document.getElementById("roomCode");
+    const playerNameInput = document.getElementById("playerName");
     const createRoomBtn = document.getElementById("createRoom");
     const joinRoomBtn = document.getElementById("joinRoom");
     const resetBtn = document.getElementById("resetButton");
-    const playerNameInput = document.getElementById("playerName");
 
-    const winScreen = document.getElementById("winScreen");
-    const winnerText = document.getElementById("winnerText");
-
-    const chatMessages = document.getElementById("messages");
-    const messageText = document.getElementById("messageText");
+    // Chat elements
+    const chatBubble = document.getElementById("chatBubble");
+    const chatBox = document.getElementById("chatBox");
+    const chatMessages = document.getElementById("chatMessages");
+    const chatInput = document.getElementById("chatInput");
     const sendBtn = document.getElementById("sendBtn");
-    const emojiPicker = document.getElementById("emojiPicker");
-    const emojiBtn = document.getElementById("emojiBtn");
+    const closeChat = document.getElementById("closeChat");
+    const notificationDot = document.getElementById("notificationDot");
 
     let roomCode = "";
     let currentPlayer = "X";
     let mySymbol = "";
-    let playerName = "";
     let board = ["", "", "", "", "", "", "", "", ""];
+    let chatOpen = false;
 
-    // Create cells
+    // Create game cells
     for (let i = 0; i < 9; i++) {
       const cell = document.createElement("div");
       cell.classList.add("cell");
@@ -211,36 +239,30 @@
       boardElement.appendChild(cell);
     }
 
-    // Create room
     createRoomBtn.onclick = async () => {
-      playerName = playerNameInput.value.trim() || "Player 1";
       roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
       mySymbol = "X";
       await set(ref(db, "rooms/" + roomCode), {
         board: board,
-        currentPlayer: "X",
-        players: { X: playerName }
+        currentPlayer: "X"
       });
       status.textContent = `Room Created: ${roomCode}. Waiting for player O...`;
       listenRoom();
       listenChat();
     };
 
-    // Join room
     joinRoomBtn.onclick = async () => {
-      playerName = playerNameInput.value.trim() || "Player 2";
       roomCode = roomInput.value.trim().toUpperCase();
       if (!roomCode) return alert("Enter a room code!");
       const snapshot = await get(ref(db, "rooms/" + roomCode));
       if (!snapshot.exists()) return alert("Room not found!");
       mySymbol = "O";
-      await update(ref(db, "rooms/" + roomCode + "/players"), { O: playerName });
+      await update(ref(db, "rooms/" + roomCode), {});
       status.textContent = `Joined room ${roomCode}. You are O.`;
       listenRoom();
       listenChat();
     };
 
-    // Listen room changes
     function listenRoom() {
       onValue(ref(db, "rooms/" + roomCode), (snapshot) => {
         const data = snapshot.val();
@@ -248,106 +270,78 @@
         board = data.board;
         currentPlayer = data.currentPlayer;
         updateBoardUI();
-        checkWinner();
       });
     }
 
-    // Make a move
     async function makeMove(i) {
       if (board[i] || currentPlayer !== mySymbol) return;
       board[i] = mySymbol;
       currentPlayer = mySymbol === "X" ? "O" : "X";
-      await update(ref(db, "rooms/" + roomCode), {
+      await set(ref(db, "rooms/" + roomCode), {
         board: board,
-        currentPlayer: currentPlayer,
+        currentPlayer: currentPlayer
       });
-      checkWinner();
     }
 
-    // Update UI
     function updateBoardUI() {
       const cells = document.querySelectorAll(".cell");
-      board.forEach((val, i) => (cells[i].textContent = val));
+      board.forEach((val, i) => {
+        cells[i].textContent = val;
+      });
       status.textContent = `Room: ${roomCode} | Turn: ${currentPlayer}`;
     }
 
-    // Check winner
-    function checkWinner() {
-      const wins = [
-        [0,1,2],[3,4,5],[6,7,8],
-        [0,3,6],[1,4,7],[2,5,8],
-        [0,4,8],[2,4,6]
-      ];
-      for (const combo of wins) {
-        const [a,b,c] = combo;
-        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-          showWinScreen(board[a]);
-          return;
-        }
-      }
-    }
-
-    function showWinScreen(symbol) {
-      get(ref(db, "rooms/" + roomCode + "/players")).then(snapshot => {
-        const players = snapshot.val();
-        const winnerName = players[symbol] || "Player";
-        winnerText.textContent = `${winnerName} Wins!`;
-        winScreen.style.display = "flex";
-      });
-    }
-
-    window.hideWinScreen = () => {
-      winScreen.style.display = "none";
-      resetBtn.click();
-    };
-
-    // Reset game
     resetBtn.onclick = async () => {
       if (!roomCode) return;
       board = ["", "", "", "", "", "", "", "", ""];
-      await update(ref(db, "rooms/" + roomCode), {
+      await set(ref(db, "rooms/" + roomCode), {
         board: board,
-        currentPlayer: "X",
+        currentPlayer: "X"
       });
-      winScreen.style.display = "none";
     };
 
-    // Chat System
-    sendBtn.onclick = async () => {
-      if (!roomCode) return;
-      const text = messageText.value.trim();
-      if (!text) return;
-      await push(ref(db, "chats/" + roomCode), {
-        name: playerName,
-        msg: text
-      });
-      messageText.value = "";
+    // 🔹 Chat Functions
+    chatBubble.onclick = () => {
+      chatBox.style.display = "flex";
+      chatBubble.style.display = "none";
+      chatOpen = true;
+      notificationDot.style.display = "none";
     };
+
+    closeChat.onclick = () => {
+      chatBox.style.display = "none";
+      chatBubble.style.display = "flex";
+      chatOpen = false;
+    };
+
+    sendBtn.onclick = sendMessage;
+    chatInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    async function sendMessage() {
+      const msg = chatInput.value.trim();
+      const name = playerNameInput.value || "Player";
+      if (!msg || !roomCode) return;
+      const msgRef = ref(db, "rooms/" + roomCode + "/chat");
+      await push(msgRef, { name, msg, time: Date.now() });
+      chatInput.value = "";
+    }
 
     function listenChat() {
-      onValue(ref(db, "chats/" + roomCode), (snapshot) => {
+      onValue(ref(db, "rooms/" + roomCode + "/chat"), (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
         chatMessages.innerHTML = "";
-        snapshot.forEach((child) => {
-          const data = child.val();
+        Object.values(data).forEach((m) => {
           const div = document.createElement("div");
-          div.textContent = `${data.name}: ${data.msg}`;
+          div.textContent = `${m.name}: ${m.msg}`;
           chatMessages.appendChild(div);
         });
         chatMessages.scrollTop = chatMessages.scrollHeight;
+        if (!chatOpen) notificationDot.style.display = "block";
       });
     }
-
-    // Emoji Picker
-    emojiBtn.onclick = () => {
-      emojiPicker.style.display = emojiPicker.style.display === "block" ? "none" : "block";
-    };
-
-    emojiPicker.querySelectorAll("span").forEach(e => {
-      e.onclick = () => {
-        messageText.value += e.textContent;
-        emojiPicker.style.display = "none";
-      };
-    });
   </script>
 </body>
 </html>
