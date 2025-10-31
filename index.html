@@ -272,7 +272,9 @@
         board: board,
         currentPlayer: "X",
         gameOver: false,
-        winner: ""
+        winner: "",
+        playerX: playerNameInput.value || "Player X",
+        playerO: ""
       });
       status.textContent = `Room Created: ${roomCode}. Waiting for player O...`;
       listenRoom();
@@ -286,7 +288,9 @@
       if (!snapshot.exists()) return alert("Room not found!");
       mySymbol = "O";
       gameOver = false;
-      await update(ref(db, "rooms/" + roomCode), {});
+      await update(ref(db, "rooms/" + roomCode), {
+        playerO: playerNameInput.value || "Player O"
+      });
       status.textContent = `Joined room ${roomCode}. You are O.`;
       listenRoom();
       listenChat();
@@ -300,11 +304,15 @@
         currentPlayer = data.currentPlayer;
         gameOver = data.gameOver || false;
         const winner = data.winner || "";
+        const playerX = data.playerX || "Player X";
+        const playerO = data.playerO || "Player O";
         updateBoardUI();
         if (gameOver) {
-          status.textContent = winner ? `Player ${winner} wins!` : "It's a draw!";
+          const winnerName = winner === "X" ? playerX : playerO;
+          status.textContent = winner ? `${winnerName} wins!` : "It's a draw!";
         } else {
-          status.textContent = `Room: ${roomCode} | Turn: ${currentPlayer}`;
+          const currentPlayerName = currentPlayer === "X" ? playerX : playerO;
+          status.textContent = `Room: ${roomCode} | Turn: ${currentPlayerName}`;
         }
       });
     }
