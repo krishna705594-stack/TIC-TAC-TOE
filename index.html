@@ -7,87 +7,67 @@
   <style>
     body {
       font-family: 'Press Start 2P', cursive;
-      background: linear-gradient(120deg, #89f7fe, #66a6ff);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      color: #333;
       text-align: center;
+      background: #f3f3f3;
     }
 
     h1 {
-      margin-bottom: 10px;
+      margin-top: 40px;
     }
 
     .board {
       display: grid;
       grid-template-columns: repeat(3, 100px);
-      grid-gap: 10px;
+      grid-template-rows: repeat(3, 100px);
+      gap: 10px;
+      justify-content: center;
+      margin-top: 30px;
     }
 
     .cell {
-      width: 100px;
-      height: 100px;
       background: white;
+      border: 2px solid black;
+      font-size: 36px;
       display: flex;
-      align-items: center;
       justify-content: center;
-      font-size: 2em;
+      align-items: center;
       cursor: pointer;
-      border-radius: 10px;
-      transition: background 0.2s;
     }
 
-    .cell:hover {
-      background: #f1f1f1;
-    }
-
-    .controls {
+    button {
       margin-top: 20px;
-    }
-
-    input, button {
-      font-family: inherit;
-      padding: 8px;
-      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
     }
 
     #status {
       margin-top: 15px;
       font-size: 14px;
-      color: #222;
+      color: gray;
     }
   </style>
 </head>
 <body>
-  <h1>🎮 Tic Tac Toe Online</h1>
+  <h1>TIC-TAC-TOE</h1>
+  <p>JUST FOR PLAYING WITH MY FRIENDS...</p>
 
-  <div class="controls">
-    <button onclick="createRoom()">Create Room</button>
-    <input type="text" id="roomCode" placeholder="Enter Room Code">
-    <button onclick="joinRoom()">Join Room</button>
+  <!-- 🔹 Room Controls -->
+  <div style="text-align:center; margin-bottom:20px;">
+    <input type="text" id="roomCode" placeholder="Enter Room Code" />
+    <button id="createRoom">Create Room</button>
+    <button id="joinRoom">Join Room</button>
+    <p id="status">Waiting for action...</p>
   </div>
 
-  <div id="status">Waiting for action...</div>
+  <!-- 🔹 Game Board -->
+  <div class="board" id="board"></div>
+  <button id="resetButton">Reset Game</button>
 
-  <div class="board" id="board">
-    <div class="cell" data-index="0"></div>
-    <div class="cell" data-index="1"></div>
-    <div class="cell" data-index="2"></div>
-    <div class="cell" data-index="3"></div>
-    <div class="cell" data-index="4"></div>
-    <div class="cell" data-index="5"></div>
-    <div class="cell" data-index="6"></div>
-    <div class="cell" data-index="7"></div>
-    <div class="cell" data-index="8"></div>
-  </div>
-
+  <!-- 🔹 Firebase + Game Logic -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-    import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB2wrRxkm8NlDcoa9_6q6a3PjyWXMrsIOk",
@@ -102,70 +82,88 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const board = document.getElementById("board");
-    const statusDiv = document.getElementById("status");
-    const cells = document.querySelectorAll(".cell");
+    const boardElement = document.getElementById("board");
+    const status = document.getElementById("status");
+    const roomInput = document.getElementById("roomCode");
+    const createRoomBtn = document.getElementById("createRoom");
+    const joinRoomBtn = document.getElementById("joinRoom");
+    const resetBtn = document.getElementById("resetButton");
+
+    let roomCode = "";
     let currentPlayer = "X";
-    let playerSymbol = "";
-    let room = "";
+    let mySymbol = "";
+    let board = ["", "", "", "", "", "", "", "", ""];
 
-    cells.forEach(cell => {
-      cell.addEventListener("click", () => {
-        if (!room) return alert("Join or create a room first!");
-        playMove(cell.dataset.index);
-      });
-    });
-
-    function createRoom() {
-      room = Math.random().toString(36).substr(2, 5).toUpperCase();
-      playerSymbol = "X";
-      set(ref(db, "rooms/" + room), {
-        board: Array(9).fill(""),
-        currentTurn: "X"
-      });
-      statusDiv.textContent = `Room Created! Code: ${room} (You are X)`;
-      listenToRoom(room);
+    // Create cells
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement("div");
+      cell.classList.add("cell");
+      cell.addEventListener("click", () => makeMove(i));
+      boardElement.appendChild(cell);
     }
 
-    function joinRoom() {
-      const code = document.getElementById("roomCode").value.trim().toUpperCase();
-      if (!code) return alert("Enter a room code!");
-      room = code;
-      playerSymbol = "O";
-      get(ref(db, "rooms/" + room)).then(snapshot => {
-        if (snapshot.exists()) {
-          statusDiv.textContent = `Joined Room ${room}! (You are O)`;
-          listenToRoom(room);
-        } else {
-          alert("Room not found!");
-        }
+    // Create room
+    createRoomBtn.onclick = async () => {
+      roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+      mySymbol = "X";
+      await set(ref(db, "rooms/" + roomCode), {
+        board: board,
+        currentPlayer: "X",
       });
-    }
+      status.textContent = `Room Created: ${roomCode}. Waiting for player O...`;
+      listenRoom();
+    };
 
-    function playMove(index) {
-      const roomRef = ref(db, "rooms/" + room);
-      get(roomRef).then(snapshot => {
+    // Join room
+    joinRoomBtn.onclick = async () => {
+      roomCode = roomInput.value.trim().toUpperCase();
+      if (!roomCode) return alert("Enter a room code!");
+      const snapshot = await get(ref(db, "rooms/" + roomCode));
+      if (!snapshot.exists()) return alert("Room not found!");
+      mySymbol = "O";
+      await update(ref(db, "rooms/" + roomCode), {});
+      status.textContent = `Joined room ${roomCode}. You are O.`;
+      listenRoom();
+    };
+
+    // Listen room changes
+    function listenRoom() {
+      onValue(ref(db, "rooms/" + roomCode), (snapshot) => {
         const data = snapshot.val();
-        if (data && data.board[index] === "" && data.currentTurn === playerSymbol) {
-          data.board[index] = playerSymbol;
-          data.currentTurn = playerSymbol === "X" ? "O" : "X";
-          update(roomRef, data);
-        }
+        if (!data) return;
+        board = data.board;
+        currentPlayer = data.currentPlayer;
+        updateBoardUI();
       });
     }
 
-    function listenToRoom(room) {
-      const roomRef = ref(db, "rooms/" + room);
-      onValue(roomRef, snapshot => {
-        const data = snapshot.val();
-        if (data) {
-          data.board.forEach((mark, i) => {
-            cells[i].textContent = mark;
-          });
-          statusDiv.textContent = `Room ${room} | Turn: ${data.currentTurn}`;
-        }
+    // Make a move
+    async function makeMove(i) {
+      if (board[i] || currentPlayer !== mySymbol) return;
+      board[i] = mySymbol;
+      currentPlayer = mySymbol === "X" ? "O" : "X";
+      await set(ref(db, "rooms/" + roomCode), {
+        board: board,
+        currentPlayer: currentPlayer,
       });
     }
+
+    function updateBoardUI() {
+      const cells = document.querySelectorAll(".cell");
+      board.forEach((val, i) => {
+        cells[i].textContent = val;
+      });
+      status.textContent = `Room: ${roomCode} | Turn: ${currentPlayer}`;
+    }
+
+    resetBtn.onclick = async () => {
+      if (!roomCode) return;
+      board = ["", "", "", "", "", "", "", "", ""];
+      await set(ref(db, "rooms/" + roomCode), {
+        board: board,
+        currentPlayer: "X",
+      });
+    };
   </script>
 </body>
 </html>
