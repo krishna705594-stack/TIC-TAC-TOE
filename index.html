@@ -50,6 +50,18 @@
       color: gray;
     }
 
+    /* 🔹 Rules Styles */
+    #rules {
+      margin: 20px auto;
+      max-width: 600px;
+      text-align: left;
+      background: white;
+      border: 2px solid black;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    }
+
     /* 🔹 Chat Styles */
     #chatBubble {
       position: fixed;
@@ -125,9 +137,6 @@
     #chatInputArea {
       display: flex;
       border-top: 1px solid #ccc;
-      align-items: center; /* ✅ centers vertically */
-      justify-content: space-between; /* ✅ keeps button aligned */
-      padding: 5px;
     }
 
     #chatInput {
@@ -142,11 +151,9 @@
       border: none;
       background: black;
       color: white;
-      padding: 8px 12px;
+      padding: 0 15px;
       font-size: 16px;
-      border-radius: 6px;
       cursor: pointer;
-      align-self: center; /* ✅ ensures vertical centering */
     }
 
     @media (max-width: 600px) {
@@ -164,6 +171,18 @@
 <body>
   <h1>TIC-TAC-TOE</h1>
   <p>JUST FOR PLAYING WITH MY FRIENDS...</p>
+
+  <!-- 🔹 Rules Section -->
+  <div id="rules">
+    <h3>Game Rules:</h3>
+    <ul>
+      <li>The game is played on a 3x3 grid.</li>
+      <li>Players take turns placing their mark (X or O) in an empty cell.</li>
+      <li>The first player to get three of their marks in a row (horizontally, vertically, or diagonally) wins.</li>
+      <li>If all 9 cells are filled without a winner, it's a draw.</li>
+      <li>Be fair: Wait for your turn and don't cheat!</li>
+    </ul>
+  </div>
 
   <!-- 🔹 Room Controls -->
   <div style="text-align:center; margin-bottom:20px;">
@@ -234,8 +253,8 @@
     let currentPlayer = "X";
     let mySymbol = "";
     let board = ["", "", "", "", "", "", "", "", ""];
+    let gameOver = false;
     let chatOpen = false;
-    let winner = null; // ✅ track winner
 
     // Create game cells
     for (let i = 0; i < 9; i++) {
@@ -248,10 +267,12 @@
     createRoomBtn.onclick = async () => {
       roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
       mySymbol = "X";
+      gameOver = false;
       await set(ref(db, "rooms/" + roomCode), {
         board: board,
         currentPlayer: "X",
-        winner: null
+        gameOver: false,
+        winner: ""
       });
       status.textContent = `Room Created: ${roomCode}. Waiting for player O...`;
       listenRoom();
@@ -264,6 +285,7 @@
       const snapshot = await get(ref(db, "rooms/" + roomCode));
       if (!snapshot.exists()) return alert("Room not found!");
       mySymbol = "O";
+      gameOver = false;
       await update(ref(db, "rooms/" + roomCode), {});
       status.textContent = `Joined room ${roomCode}. You are O.`;
       listenRoom();
@@ -276,44 +298,56 @@
         if (!data) return;
         board = data.board;
         currentPlayer = data.currentPlayer;
-        winner = data.winner;
+        gameOver = data.gameOver || false;
+        const winner = data.winner || "";
         updateBoardUI();
+        if (gameOver) {
+          status.textContent = winner ? `Player ${winner} wins!` : "It's a draw!";
+        } else {
+          status.textContent = `Room: ${roomCode} | Turn: ${currentPlayer}`;
+        }
       });
     }
 
     async function makeMove(i) {
-      if (board[i] || currentPlayer !== mySymbol || winner) return;
+      if (board[i] || currentPlayer !== mySymbol || gameOver) return;
       board[i] = mySymbol;
-      currentPlayer = mySymbol === "X" ? "O" : "X";
-
-      // ✅ Check for winner
-      const win = checkWinner();
-      if (win) {
-        winner = mySymbol;
-        const winnerName = playerNameInput.value || `Player (${mySymbol})`;
+      const winner = checkWinner();
+      if (winner) {
+        gameOver = true;
         await set(ref(db, "rooms/" + roomCode), {
           board: board,
           currentPlayer: currentPlayer,
-          winner: winnerName
+          gameOver: true,
+          winner: winner
         });
-        return;
+      } else if (board.every(cell => cell !== "")) {
+        gameOver = true;
+        await set(ref(db, "rooms/" + roomCode), {
+          board: board,
+          currentPlayer: currentPlayer,
+          gameOver: true,
+          winner: ""
+        });
+      } else {
+        currentPlayer = mySymbol === "X" ? "O" : "X";
+        await set(ref(db, "rooms/" + roomCode), {
+          board: board,
+          currentPlayer: currentPlayer,
+          gameOver: false,
+          winner: ""
+        });
       }
-
-      await set(ref(db, "rooms/" + roomCode), {
-        board: board,
-        currentPlayer: currentPlayer,
-        winner: null
-      });
     }
 
-    // ✅ Winning patterns
     function checkWinner() {
-      const patterns = [
-        [0,1,2],[3,4,5],[6,7,8], // rows
-        [0,3,6],[1,4,7],[2,5,8], // cols
-        [0,4,8],[2,4,6]          // diagonals
+      const winPatterns = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+        [0, 4, 8], [2, 4, 6] // diagonals
       ];
-      for (const [a,b,c] of patterns) {
+      for (let pattern of winPatterns) {
+        const [a, b, c] = pattern;
         if (board[a] && board[a] === board[b] && board[a] === board[c]) {
           return board[a];
         }
@@ -326,22 +360,17 @@
       board.forEach((val, i) => {
         cells[i].textContent = val;
       });
-
-      if (winner) {
-        status.textContent = `🎉 ${winner} Wins!`;
-      } else {
-        status.textContent = `Room: ${roomCode} | Turn: ${currentPlayer}`;
-      }
     }
 
     resetBtn.onclick = async () => {
       if (!roomCode) return;
       board = ["", "", "", "", "", "", "", "", ""];
-      winner = null;
+      gameOver = false;
       await set(ref(db, "rooms/" + roomCode), {
         board: board,
         currentPlayer: "X",
-        winner: null
+        gameOver: false,
+        winner: ""
       });
     };
 
