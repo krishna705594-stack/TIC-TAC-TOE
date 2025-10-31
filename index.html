@@ -1,71 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TIC TAC TOE</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tic Tac Toe Online</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f9;
+      font-family: 'Press Start 2P', cursive;
+      background: linear-gradient(120deg, #89f7fe, #66a6ff);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      color: #333;
       text-align: center;
-      margin-top: 50px;
     }
 
     h1 {
-      color: #333;
+      margin-bottom: 10px;
     }
 
     .board {
       display: grid;
       grid-template-columns: repeat(3, 100px);
       grid-gap: 10px;
-      justify-content: center;
-      margin-top: 20px;
     }
 
     .cell {
       width: 100px;
       height: 100px;
-      font-size: 2rem;
+      background: white;
       display: flex;
-      justify-content: center;
       align-items: center;
-      background-color: white;
-      border: 2px solid #333;
+      justify-content: center;
+      font-size: 2em;
       cursor: pointer;
-      transition: 0.3s;
+      border-radius: 10px;
+      transition: background 0.2s;
     }
 
     .cell:hover {
-      background-color: #ddd;
+      background: #f1f1f1;
     }
 
-    #reset {
+    .controls {
       margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 1rem;
-      cursor: pointer;
-      background-color: #333;
-      color: white;
-      border: none;
-      border-radius: 5px;
     }
 
-    #reset:hover {
-      background-color: #555;
+    input, button {
+      font-family: inherit;
+      padding: 8px;
+      margin: 5px;
     }
 
     #status {
-      margin-top: 20px;
-      font-weight: bold;
-      font-size: 1.2rem;
+      margin-top: 15px;
+      font-size: 14px;
+      color: #222;
     }
   </style>
 </head>
 <body>
-  <h1>TIC-TAC-TOE</h1>
-  <p>JUST FOR PLAYING WITH MY FRIENDS...</p>
+  <h1>🎮 Tic Tac Toe Online</h1>
+
+  <div class="controls">
+    <button onclick="createRoom()">Create Room</button>
+    <input type="text" id="roomCode" placeholder="Enter Room Code">
+    <button onclick="joinRoom()">Join Room</button>
+  </div>
+
+  <div id="status">Waiting for action...</div>
 
   <div class="board" id="board">
     <div class="cell" data-index="0"></div>
@@ -79,92 +85,86 @@
     <div class="cell" data-index="8"></div>
   </div>
 
-  <button id="reset">Reset Game</button>
-  <div id="status"></div>
-
-  <!-- ✅ Firebase Connection -->
   <script type="module">
-    // Import Firebase SDK
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+    import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
 
-    // Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyB2wrRxkm8NlDcoa9_6q6a3PjyWXMrsIOk",
       authDomain: "tic-tac-toe-online-24631.firebaseapp.com",
       projectId: "tic-tac-toe-online-24631",
       storageBucket: "tic-tac-toe-online-24631.firebasestorage.app",
       messagingSenderId: "812537114665",
-      appId: "1:812537114665:web:b8eec1edebc355cfa9ec38"
+      appId: "1:812537114665:web:b8eec1edebc355cfa9ec38",
+      databaseURL: "https://tic-tac-toe-online-24631-default-rtdb.firebaseio.com/"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    console.log("✅ Firebase connected successfully!");
-  </script>
+    const board = document.getElementById("board");
+    const statusDiv = document.getElementById("status");
+    const cells = document.querySelectorAll(".cell");
+    let currentPlayer = "X";
+    let playerSymbol = "";
+    let room = "";
 
-  <!-- ✅ Game Logic -->
-  <script>
-    const cells = document.querySelectorAll('.cell');
-    const statusText = document.getElementById('status');
-    const resetButton = document.getElementById('reset');
-    let currentPlayer = 'X';
-    let board = ["", "", "", "", "", "", "", "", ""];
-    let running = true;
+    cells.forEach(cell => {
+      cell.addEventListener("click", () => {
+        if (!room) return alert("Join or create a room first!");
+        playMove(cell.dataset.index);
+      });
+    });
 
-    const winPatterns = [
-      [0, 1, 2],
-      [3, 4, 5],
-      [6, 7, 8],
-      [0, 3, 6],
-      [1, 4, 7],
-      [2, 5, 8],
-      [0, 4, 8],
-      [2, 4, 6]
-    ];
-
-    cells.forEach(cell => cell.addEventListener('click', cellClicked));
-    resetButton.addEventListener('click', resetGame);
-
-    function cellClicked() {
-      const index = this.getAttribute('data-index');
-      if (board[index] !== "" || !running) return;
-
-      board[index] = currentPlayer;
-      this.textContent = currentPlayer;
-      checkWinner();
+    function createRoom() {
+      room = Math.random().toString(36).substr(2, 5).toUpperCase();
+      playerSymbol = "X";
+      set(ref(db, "rooms/" + room), {
+        board: Array(9).fill(""),
+        currentTurn: "X"
+      });
+      statusDiv.textContent = `Room Created! Code: ${room} (You are X)`;
+      listenToRoom(room);
     }
 
-    function checkWinner() {
-      let roundWon = false;
-      for (let pattern of winPatterns) {
-        const [a, b, c] = pattern;
-        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-          roundWon = true;
-          break;
+    function joinRoom() {
+      const code = document.getElementById("roomCode").value.trim().toUpperCase();
+      if (!code) return alert("Enter a room code!");
+      room = code;
+      playerSymbol = "O";
+      get(ref(db, "rooms/" + room)).then(snapshot => {
+        if (snapshot.exists()) {
+          statusDiv.textContent = `Joined Room ${room}! (You are O)`;
+          listenToRoom(room);
+        } else {
+          alert("Room not found!");
         }
-      }
-
-      if (roundWon) {
-        statusText.textContent = `🎉 Player ${currentPlayer} Wins!`;
-        running = false;
-      } else if (!board.includes("")) {
-        statusText.textContent = "😅 It's a Draw!";
-        running = false;
-      } else {
-        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-        statusText.textContent = `Player ${currentPlayer}'s Turn`;
-      }
+      });
     }
 
-    function resetGame() {
-      board = ["", "", "", "", "", "", "", "", ""];
-      running = true;
-      currentPlayer = 'X';
-      statusText.textContent = "";
-      cells.forEach(cell => cell.textContent = "");
+    function playMove(index) {
+      const roomRef = ref(db, "rooms/" + room);
+      get(roomRef).then(snapshot => {
+        const data = snapshot.val();
+        if (data && data.board[index] === "" && data.currentTurn === playerSymbol) {
+          data.board[index] = playerSymbol;
+          data.currentTurn = playerSymbol === "X" ? "O" : "X";
+          update(roomRef, data);
+        }
+      });
+    }
+
+    function listenToRoom(room) {
+      const roomRef = ref(db, "rooms/" + room);
+      onValue(roomRef, snapshot => {
+        const data = snapshot.val();
+        if (data) {
+          data.board.forEach((mark, i) => {
+            cells[i].textContent = mark;
+          });
+          statusDiv.textContent = `Room ${room} | Turn: ${data.currentTurn}`;
+        }
+      });
     }
   </script>
 </body>
